@@ -12,7 +12,10 @@ uint16_t PS1_ADC_Val;   /*PS1 ADC value Read from PS1_Pin or analog mltiplexer (
 uint16_t PS2_ADC_Val;   /*PS2 ADC value Read from PS2_Pin or analog mltiplexer (ouput SB2 = 1, SB1 = 0, SB0 = 1) */
 uint16_t VREF_ADC_Val;  /*VREF ADC value Read from analog mltiplexer (ouput SB2 = 1, SB1 = 1, SB0 = 1) */
 float NTC1, NTC2, NTC3, NTC4, PS1, PS2, I1, I2;
-
+float V; /* điện áp 2 đầu NTC */
+float V1; /* điện áp 2 đầu trở 10k */
+float A1; /* dòng điền 2 đầu trở 10k =I2=I */
+float R; /* điện trở NTC tại thời điểm đó*/
 
 /***************/
 void ADC_Process(void * parameter)
@@ -27,6 +30,32 @@ void ADC_Process(void * parameter)
     NTC4_ADC_Val = analogRead(NTC4_Pin);
     PS1_ADC_Val = analogRead(PS1_Pin);
     PS1_ADC_Val = analogRead(PS2_Pin);
+
+    V = ((float)NTC1_ADC_Val*3.3/4095); //ADC 12 bit
+    Serial.print("Voltage= ");
+    Serial.print(V);
+    Serial.println(" V");
+
+    V1=3.3-V;
+    A1=V1/10000;
+    
+    R = (V/(A1))-560;
+
+    Serial.print("Resistance= ");
+    Serial.print(R);
+    Serial.println(" ohm");
+    
+//    float Tkevin=(3950+273+25)/(3950+(273+25*log(R/100000)));
+//    float C=Tkevin-273;
+//    Serial.print("C: ");
+//    Serial.println(C);
+
+//    float R2=(10000/((3.3/V)-1))-560;
+//    Serial.println(R);
+//    Serial.println(R2);
+    Serial.println("");
+    delay(2000);
+    
 //    vTaskDelay(1000 / portTICK_PERIOD_MS); /*Delay 1000ms*/
   }
 }
