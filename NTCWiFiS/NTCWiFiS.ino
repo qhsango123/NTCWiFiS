@@ -22,6 +22,7 @@ const int    SAMPLE_NUMBER      = 64; /* số lần lấy mẫu */
 int    adcSamples[SAMPLE_NUMBER];  /* chứa các mẫu */
 
 
+
 int getMostPopularElement(int arr[], const int n)
 {
     int count = 1, tempCount;
