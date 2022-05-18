@@ -20,32 +20,32 @@ float Tkevin; /* nhiệt độ đơn vị Kevin */
 float Tc; /* nhiệt độ đơn vị độ C */
 const int    SAMPLE_NUMBER      = 64; /* số lần lấy mẫu */
 int   adcSamples[SAMPLE_NUMBER];  /* chứa các mẫu */
-float allADC;
+float allADC; /* tổng giá trị adc thu được */
 
 
-int getMostPopularElement(int arr[], const int n)
-{
-    int count = 1, tempCount;
-    int temp = 0,i = 0,j = 0;
-    //Get first element
-    int popular = arr[0];
-    for (i = 0; i < (n- 1); i++)
-    {
-        temp = arr[i];
-        tempCount = 0;
-        for (j = 1; j < n; j++)
-        {
-            if (temp == arr[j])
-                tempCount++;
-        }
-        if (tempCount > count)
-        {
-            popular = temp;
-            count = tempCount;
-        }
-    }
-    return popular;
-}
+//int getMostPopularElement(int arr[], const int n)
+//{
+//    int count = 1, tempCount;
+//    int temp = 0,i = 0,j = 0;
+//    //Get first element
+//    int popular = arr[0];
+//    for (i = 0; i < (n- 1); i++)
+//    {
+//        temp = arr[i];
+//        tempCount = 0;
+//        for (j = 1; j < n; j++)
+//        {
+//            if (temp == arr[j])
+//                tempCount++;
+//        }
+//        if (tempCount > count)
+//        {
+//            popular = temp;
+//            count = tempCount;
+//        }
+//    }
+//    return popular;
+//}
 
 /***************/
 void ADC_Process(void * parameter)
@@ -71,6 +71,7 @@ void ADC_Process(void * parameter)
     //Tìm giá trị xuất hiện nhiều nhất
 //    NTC1_ADC_Val = getMostPopularElement(adcSamples, SAMPLE_NUMBER);
 
+    //Tính giá trị trung bình
     for (int i=0; i< SAMPLE_NUMBER; i++)
     {
       allADC = allADC + adcSamples[i];
