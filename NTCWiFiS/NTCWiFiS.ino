@@ -20,32 +20,33 @@ float Tkevin; /* nhiệt độ đơn vị Kevin */
 float Tc; /* nhiệt độ đơn vị độ C */
 const int    SAMPLE_NUMBER      = 64; /* số lần lấy mẫu */
 int   adcSamples[SAMPLE_NUMBER];  /* chứa các mẫu */
+int adc[20]; /* tính trung bình  */
 float allADC; /* tổng giá trị adc thu được */
 
 
-//int getMostPopularElement(int arr[], const int n)
-//{
-//    int count = 1, tempCount;
-//    int temp = 0,i = 0,j = 0;
-//    //Get first element
-//    int popular = arr[0];
-//    for (i = 0; i < (n- 1); i++)
-//    {
-//        temp = arr[i];
-//        tempCount = 0;
-//        for (j = 1; j < n; j++)
-//        {
-//            if (temp == arr[j])
-//                tempCount++;
-//        }
-//        if (tempCount > count)
-//        {
-//            popular = temp;
-//            count = tempCount;
-//        }
-//    }
-//    return popular;
-//}
+int getMostPopularElement(int arr[], const int n)
+{
+    int count = 1, tempCount;
+    int temp = 0,i = 0,j = 0;
+    //Get first element
+    int popular = arr[0];
+    for (i = 0; i < (n- 1); i++)
+    {
+        temp = arr[i];
+        tempCount = 0;
+        for (j = 1; j < n; j++)
+        {
+            if (temp == arr[j])
+                tempCount++;
+        }
+        if (tempCount > count)
+        {
+            popular = temp;
+            count = tempCount;
+        }
+    }
+    return popular;
+}
 
 /***************/
 void ADC_Process(void * parameter)
@@ -55,28 +56,32 @@ void ADC_Process(void * parameter)
   for(;;)
   {
     //Lấy mẫu
-    for (int i = 0; i < SAMPLE_NUMBER; i++) 
+    for (int j=0; j < 20; j++)
     {
-      adcSamples[i] = analogRead(NTC1_Pin);
-      
-//      NTC1_ADC_Val = analogRead(NTC1_Pin);
-      NTC2_ADC_Val = analogRead(NTC2_Pin);
-      NTC3_ADC_Val = analogRead(NTC3_Pin);
-      NTC4_ADC_Val = analogRead(NTC4_Pin);
-      PS1_ADC_Val = analogRead(PS1_Pin);
-      PS1_ADC_Val = analogRead(PS2_Pin);
-      delay(5);        // wait 5 milliseconds
+      for (int i = 0; i < SAMPLE_NUMBER; i++) 
+      {
+        adcSamples[i] = analogRead(NTC1_Pin);
+        
+  //      NTC1_ADC_Val = analogRead(NTC1_Pin);
+        NTC2_ADC_Val = analogRead(NTC2_Pin);
+        NTC3_ADC_Val = analogRead(NTC3_Pin);
+        NTC4_ADC_Val = analogRead(NTC4_Pin);
+        PS1_ADC_Val = analogRead(PS1_Pin);
+        PS1_ADC_Val = analogRead(PS2_Pin);
+  //      delay(5);        // wait 5 milliseconds
+      }
+      //Tìm giá trị xuất hiện nhiều nhất
+      adc[j] = getMostPopularElement(adcSamples, SAMPLE_NUMBER);
     }
 
-    //Tìm giá trị xuất hiện nhiều nhất
-//    NTC1_ADC_Val = getMostPopularElement(adcSamples, SAMPLE_NUMBER);
+    
 
     //Tính giá trị trung bình
-    for (int i=0; i< SAMPLE_NUMBER; i++)
+    for (int i=0; i< 20; i++)
     {
-      allADC = allADC + adcSamples[i];
+      allADC = allADC + adc[i];
     }
-    NTC1_ADC_Val=allADC/SAMPLE_NUMBER;
+    NTC1_ADC_Val=allADC/20;
     allADC=0;
     
 //    Serial.println(NTC1_ADC_Val);
@@ -85,24 +90,28 @@ void ADC_Process(void * parameter)
 //      Serial.print(adcSamples[i]);
 //      Serial.print(" ");
 //    }   
+
+    //Tính điện áp qua ntc
     V = ((float)NTC1_ADC_Val*3.3/4095); //ADC 12 bit
-    Serial.print("Voltage= ");
+    Serial.print("Voltage = ");
     Serial.print(V);
     Serial.println(" V");
 
+    //điện áp qua trở 10k
     V1=3.3-V;
+    //tính dòng điện
     A1=V1/10000;
-    
+    //tính trở ntc
     R = (V/(A1))-560;
 
-    Serial.print("Resistance= ");
+    Serial.print("Resistance = ");
     Serial.print(R);
     Serial.println(" ohm");
 
-    //Tính nhiệt độ
+    //Tính nhiệt độ, beta=3975, R=100k at 25*C
     Tkevin=(3975*(273.15+25))/(3975+((273.15+25)*log(R/100000)));
     Tc=Tkevin-273.15;
-    Serial.print("Temperture: ");
+    Serial.print("Temperture = ");
     Serial.print(Tc);
     Serial.println("*C");
 
