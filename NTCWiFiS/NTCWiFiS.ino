@@ -19,8 +19,8 @@ float R; /* điện trở NTC tại thời điểm đó*/
 float Tkevin; /* nhiệt độ đơn vị Kevin */
 float Tc; /* nhiệt độ đơn vị độ C */
 const int    SAMPLE_NUMBER      = 64; /* số lần lấy mẫu */
-int    adcSamples[SAMPLE_NUMBER];  /* chứa các mẫu */
-
+int   adcSamples[SAMPLE_NUMBER];  /* chứa các mẫu */
+float allADC;
 
 
 int getMostPopularElement(int arr[], const int n)
@@ -69,7 +69,15 @@ void ADC_Process(void * parameter)
     }
 
     //Tìm giá trị xuất hiện nhiều nhất
-    NTC1_ADC_Val = getMostPopularElement(adcSamples, SAMPLE_NUMBER);
+//    NTC1_ADC_Val = getMostPopularElement(adcSamples, SAMPLE_NUMBER);
+
+    for (int i=0; i< SAMPLE_NUMBER; i++)
+    {
+      allADC = allADC + adcSamples[i];
+    }
+    NTC1_ADC_Val=allADC/SAMPLE_NUMBER;
+    allADC=0;
+    
 //    Serial.println(NTC1_ADC_Val);
 //    for(int i=0; i<SAMPLE_NUMBER; i++)
 //    {
