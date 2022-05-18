@@ -14,8 +14,37 @@ uint16_t VREF_ADC_Val;  /*VREF ADC value Read from analog mltiplexer (ouput SB2 
 float NTC1, NTC2, NTC3, NTC4, PS1, PS2, I1, I2;
 float V; /* điện áp 2 đầu NTC */
 float V1; /* điện áp 2 đầu trở 10k */
-float A1; /* dòng điền 2 đầu trở 10k =I2=I */
+float A1; /* dòng điền 2 đầu trở 10k = I */
 float R; /* điện trở NTC tại thời điểm đó*/
+float Tkevin; /* nhiệt độ đơn vị Kevin */
+float Tc; /* nhiệt độ đơn vị độ C */
+const int    SAMPLE_NUMBER      = 64; /* số lần lấy mẫu */
+int    adcSamples[SAMPLE_NUMBER];  /* chứa các mẫu */
+
+
+int getMostPopularElement(int arr[], const int n)
+{
+    int count = 1, tempCount;
+    int temp = 0,i = 0,j = 0;
+    //Get first element
+    int popular = arr[0];
+    for (i = 0; i < (n- 1); i++)
+    {
+        temp = arr[i];
+        tempCount = 0;
+        for (j = 1; j < n; j++)
+        {
+            if (temp == arr[j])
+                tempCount++;
+        }
+        if (tempCount > count)
+        {
+            popular = temp;
+            count = tempCount;
+        }
+    }
+    return popular;
+}
 
 /***************/
 void ADC_Process(void * parameter)
@@ -24,13 +53,28 @@ void ADC_Process(void * parameter)
   UART_Debug.printf("ADC_Process is running on CPU %d\n", xPortGetCoreID());
   for(;;)
   {
-    NTC1_ADC_Val = analogRead(NTC1_Pin);
-    NTC2_ADC_Val = analogRead(NTC2_Pin);
-    NTC3_ADC_Val = analogRead(NTC3_Pin);
-    NTC4_ADC_Val = analogRead(NTC4_Pin);
-    PS1_ADC_Val = analogRead(PS1_Pin);
-    PS1_ADC_Val = analogRead(PS2_Pin);
+    //Lấy mẫu
+    for (int i = 0; i < SAMPLE_NUMBER; i++) 
+    {
+      adcSamples[i] = analogRead(NTC1_Pin);
+      
+//      NTC1_ADC_Val = analogRead(NTC1_Pin);
+      NTC2_ADC_Val = analogRead(NTC2_Pin);
+      NTC3_ADC_Val = analogRead(NTC3_Pin);
+      NTC4_ADC_Val = analogRead(NTC4_Pin);
+      PS1_ADC_Val = analogRead(PS1_Pin);
+      PS1_ADC_Val = analogRead(PS2_Pin);
+      delay(5);        // wait 5 milliseconds
+    }
 
+    //Tìm giá trị xuất hiện nhiều nhất
+    NTC1_ADC_Val = getMostPopularElement(adcSamples, SAMPLE_NUMBER);
+//    Serial.println(NTC1_ADC_Val);
+//    for(int i=0; i<SAMPLE_NUMBER; i++)
+//    {
+//      Serial.print(adcSamples[i]);
+//      Serial.print(" ");
+//    }   
     V = ((float)NTC1_ADC_Val*3.3/4095); //ADC 12 bit
     Serial.print("Voltage= ");
     Serial.print(V);
@@ -44,15 +88,14 @@ void ADC_Process(void * parameter)
     Serial.print("Resistance= ");
     Serial.print(R);
     Serial.println(" ohm");
-    
-//    float Tkevin=(3950+273+25)/(3950+(273+25*log(R/100000)));
-//    float C=Tkevin-273;
-//    Serial.print("C: ");
-//    Serial.println(C);
 
-//    float R2=(10000/((3.3/V)-1))-560;
-//    Serial.println(R);
-//    Serial.println(R2);
+    //Tính nhiệt độ
+    Tkevin=(3975*(273.15+25))/(3975+((273.15+25)*log(R/100000)));
+    Tc=Tkevin-273.15;
+    Serial.print("Temperture: ");
+    Serial.print(Tc);
+    Serial.println("*C");
+
     Serial.println("");
     delay(2000);
     
