@@ -12,13 +12,15 @@ uint16_t PS1_ADC_Val;   /*PS1 ADC value Read from PS1_Pin or analog mltiplexer (
 uint16_t PS2_ADC_Val;   /*PS2 ADC value Read from PS2_Pin or analog mltiplexer (ouput SB2 = 1, SB1 = 0, SB0 = 1) */
 uint16_t VREF_ADC_Val;  /*VREF ADC value Read from analog mltiplexer (ouput SB2 = 1, SB1 = 1, SB0 = 1) */
 float NTC1, NTC2, NTC3, NTC4, PS1, PS2, I1, I2;
-float V; /* điện áp 2 đầu NTC */
-float V1; /* điện áp 2 đầu trở 10k */
-float A1; /* dòng điền 2 đầu trở 10k = I */
+//float V; /* điện áp 2 đầu NTC */
+//float V1; /* điện áp 2 đầu trở 10k */
+//float A1; /* dòng điền 2 đầu trở 10k = I */
 float R; /* điện trở NTC tại thời điểm đó*/
 float Tkevin; /* nhiệt độ đơn vị Kevin */
 float Tc; /* nhiệt độ đơn vị độ C */
-const int    SAMPLE_NUMBER      = 64; /* số lần lấy mẫu */
+//int          U  =  3.282;              /* điện áp nguồn */
+const int    COUNT_NUMBER    = 20; /* số lần chia */
+const int    SAMPLE_NUMBER   = 64; /* số lần lấy mẫu */
 int   adcSamples[SAMPLE_NUMBER];  /* chứa các mẫu */
 int adc[20]; /* tính trung bình  */
 float allADC; /* tổng giá trị adc thu được */
@@ -56,11 +58,13 @@ void ADC_Process(void * parameter)
   for(;;)
   {
     //Lấy mẫu
-    for (int j=0; j < 20; j++)
+    for (int j=0; j < COUNT_NUMBER; j++)
     {
       for (int i = 0; i < SAMPLE_NUMBER; i++) 
       {
         adcSamples[i] = analogRead(NTC1_Pin);
+//        Serial.println(adcSamples[i]);
+//        delay(100);
         
   //      NTC1_ADC_Val = analogRead(NTC1_Pin);
         NTC2_ADC_Val = analogRead(NTC2_Pin);
@@ -77,48 +81,55 @@ void ADC_Process(void * parameter)
     
 
     //Tính giá trị trung bình
-    for (int i=0; i< 20; i++)
+    for (int i=0; i< COUNT_NUMBER; i++)
     {
       allADC = allADC + adc[i];
     }
-    NTC1_ADC_Val=allADC/20;
-    allADC=0;
-    
-//    Serial.println(NTC1_ADC_Val);
-//    for(int i=0; i<SAMPLE_NUMBER; i++)
-//    {
-//      Serial.print(adcSamples[i]);
-//      Serial.print(" ");
-//    }   
+    NTC1_ADC_Val=allADC/COUNT_NUMBER;
+    //reset biến cho lần đọc tiếp theo
+    allADC=0; 
 
     //Tính điện áp qua ntc
-    V = ((float)NTC1_ADC_Val*3.3/4095); //ADC 12 bit
-    Serial.print("Voltage = ");
-    Serial.print(V);
-    Serial.println(" V");
+//    V = ((float)NTC1_ADC_Val*U/4095); //ADC 12 bit
+//    Serial.print("Voltage = ");
+//    Serial.print(V);
+//    Serial.println(" V");
 
-    //điện áp qua trở 10k
-    V1=3.3-V;
-    //tính dòng điện
-    A1=V1/10000;
-    //tính trở ntc
-    R = (V/(A1))-560;
+//    //điện áp qua trở 10k
+//    V1=U-V;
+//    //tính dòng điện
+//    A1=V1/10000;
+//    //tính trở ntc
+//    R2 = (V/(A1))-560;
 
+    /* 
+     * điên áp qua NTC và trở 560 là U1= ADC*3.3/4095
+     * điện áp qua trở 10k là U2= 3.3-U1 <=> 3.3*(1 - ADC/4095)
+     * dòng điện qua NTC và trở 560 bằng với dòng qua trở 10k do mắc nối tiếp
+     * => I=I1=I2= (3.3*(1-ADC/4095))/10000 = (3.3*ADC)/(4095*(R+560))  
+     * R ở đây là trở kháng của NTC, ADC là giá trị adc đọc được (NTC1_ADC_Val)
+     * bỏ 3.3 ở 2 vế biến đổi có được công thức ở dưới
+     */
+    R=((float)NTC1_ADC_Val*4095*10000)/(4095*(4095-(float)NTC1_ADC_Val))-560;
+
+    
     Serial.print("Resistance = ");
     Serial.print(R);
     Serial.println(" ohm");
 
+
     //Tính nhiệt độ, beta=3975, R=100k at 25*C
     Tkevin=(3975*(273.15+25))/(3975+((273.15+25)*log(R/100000)));
     Tc=Tkevin-273.15;
+    
     Serial.print("Temperture = ");
     Serial.print(Tc);
     Serial.println("*C");
 
     Serial.println("");
-    delay(2000);
+//    delay(1000);
     
-//    vTaskDelay(1000 / portTICK_PERIOD_MS); /*Delay 1000ms*/
+    vTaskDelay(1000 / portTICK_PERIOD_MS); /*Delay 1000ms*/
   }
 }
 void setup() {
