@@ -12,20 +12,24 @@ uint16_t PS1_ADC_Val;   /*PS1 ADC value Read from PS1_Pin or analog mltiplexer (
 uint16_t PS2_ADC_Val;   /*PS2 ADC value Read from PS2_Pin or analog mltiplexer (ouput SB2 = 1, SB1 = 0, SB0 = 1) */
 uint16_t VREF_ADC_Val;  /*VREF ADC value Read from analog mltiplexer (ouput SB2 = 1, SB1 = 1, SB0 = 1) */
 float NTC1, NTC2, NTC3, NTC4, PS1, PS2, I1, I2;
-//float V; /* điện áp 2 đầu NTC */
-//float V1; /* điện áp 2 đầu trở 10k */
-//float A1; /* dòng điền 2 đầu trở 10k = I */
-float R; /* điện trở NTC tại thời điểm đó*/
-float Tkevin; /* nhiệt độ đơn vị Kevin */
-float Tc; /* nhiệt độ đơn vị độ C */
-//int          U  =  3.282;              /* điện áp nguồn */
-const int    COUNT_NUMBER    = 20; /* số lần chia */
-const int    SAMPLE_NUMBER   = 64; /* số lần lấy mẫu */
-int   adcSamples[SAMPLE_NUMBER];  /* chứa các mẫu */
-int adc[20]; /* tính trung bình  */
-float allADC; /* tổng giá trị adc thu được */
+//float V2;           /* điện áp 2 đầu NTC */
+//float V1;           /* điện áp 2 đầu trở 10k */
+//float A;            /* dòng điền 2 đầu trở 10k = I */
+//float R2;           /* trở của ntc và 560 */
+//int   U  =  3.282;  /* điện áp nguồn */
+float R;            /* điện trở NTC tại thời điểm đó*/
+float Tkevin;       /* nhiệt độ đơn vị Kevin */
+float Tc;           /* nhiệt độ đơn vị độ C */
+const int    To          = 273.15+25;   /* nhiệt độ ntc tại 100k đơn vị Kevin */
+const int    BETA            = 3950;
+const int    COUNT_NUMBER    = 10;      /* số lần lấy giá trị xuất hiện nhiều nhất trong một mẫu */
+const int    SAMPLE_NUMBER   = 64;      /* số lần lấy mẫu */
+const float  maxADC          = 4095;    /* ADC 12bit */
+int          adcSamples[SAMPLE_NUMBER]; /* chứa các mẫu */
+int          adc[COUNT_NUMBER];         /* tính trung bình  */
+float        allADC;                    /* tổng giá trị adc thu được */
 
-
+//Tìm giá trị xuất hiện nhiều nhất
 int getMostPopularElement(int arr[], const int n)
 {
     int count = 1, tempCount;
@@ -63,8 +67,6 @@ void ADC_Process(void * parameter)
       for (int i = 0; i < SAMPLE_NUMBER; i++) 
       {
         adcSamples[i] = analogRead(NTC1_Pin);
-//        Serial.println(adcSamples[i]);
-//        delay(100);
         
   //      NTC1_ADC_Val = analogRead(NTC1_Pin);
         NTC2_ADC_Val = analogRead(NTC2_Pin);
@@ -90,17 +92,20 @@ void ADC_Process(void * parameter)
     allADC=0; 
 
     //Tính điện áp qua ntc
-//    V = ((float)NTC1_ADC_Val*U/4095); //ADC 12 bit
+//    V2 = ((float)NTC1_ADC_Val*U/maxADC); //ADC 12 bit
 //    Serial.print("Voltage = ");
 //    Serial.print(V);
 //    Serial.println(" V");
 
 //    //điện áp qua trở 10k
-//    V1=U-V;
+//    V1=U-V2;
 //    //tính dòng điện
-//    A1=V1/10000;
+//    A=V1/10000;
 //    //tính trở ntc
-//    R2 = (V/(A1))-560;
+//    R2 = (V2/(A))-560;
+
+//    float R2=10000/(float(float(maxADC/NTC1_ADC_Val)-1))-560;
+//    Serial.println(R2);
 
     /* 
      * điên áp qua NTC và trở 560 là U1= ADC*3.3/4095
@@ -110,7 +115,7 @@ void ADC_Process(void * parameter)
      * R ở đây là trở kháng của NTC, ADC là giá trị adc đọc được (NTC1_ADC_Val)
      * bỏ 3.3 ở 2 vế biến đổi có được công thức ở dưới
      */
-    R=((float)NTC1_ADC_Val*4095*10000)/(4095*(4095-(float)NTC1_ADC_Val))-560;
+    R=((float)NTC1_ADC_Val*maxADC*10000)/(maxADC*(maxADC-(float)NTC1_ADC_Val))-560;
 
     
     Serial.print("Resistance = ");
@@ -118,8 +123,8 @@ void ADC_Process(void * parameter)
     Serial.println(" ohm");
 
 
-    //Tính nhiệt độ, beta=3975, R=100k at 25*C
-    Tkevin=(3975*(273.15+25))/(3975+((273.15+25)*log(R/100000)));
+    //Tính nhiệt độ, beta=3975, R=100k at 25*C, balnace resistor = 10000 ohm
+    Tkevin=(BETA*(To))/(BETA+((To)*log(R/100000)));
     Tc=Tkevin-273.15;
     
     Serial.print("Temperture = ");
@@ -129,7 +134,7 @@ void ADC_Process(void * parameter)
     Serial.println("");
 //    delay(1000);
     
-    vTaskDelay(1000 / portTICK_PERIOD_MS); /*Delay 1000ms*/
+    vTaskDelay(300 / portTICK_PERIOD_MS); /*Delay 1000ms*/
   }
 }
 void setup() {
